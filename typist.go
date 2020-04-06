@@ -27,13 +27,19 @@ type Challenges struct {
     Lines []string `challenges`
 }
 
+// Main Loop
 func main() {
 
   var c Challenges
+  var average float64
+
   c.readFile("challenges.yml")
+
 
   for _, i := range c.Lines {
     succeeded, errRate, elapsed := challengeTypist(i)
+
+    average += errRate
 
     if succeeded {
       fmt.Printf("Success took %.2fs, errors rate: %.2f%%\n", elapsed, errRate)
@@ -42,6 +48,7 @@ func main() {
     }
   }
 
+  fmt.Printf("\\o/ Average error rate: %.2f%%\n", average/float64(len(c.Lines)))
 }
 
 // Read formatted yaml file
@@ -71,7 +78,6 @@ func challengeTypist(challenge string) (bool, float64, float64) {
   reader := bufio.NewReader(os.Stdin)
 
   start := time.Now()
-
   input, err := reader.ReadString('\n')
   if err != nil {
     log.Fatal(err)
@@ -92,7 +98,7 @@ func compare(challenge string, input string) (bool, float64) {
 
   // pad input to match challenge if too short
   for i := len(input); len(input) < len(challenge); i++ {
-    input += " "
+    input += "\x00"
   }
 
   // run comparsion char by char
