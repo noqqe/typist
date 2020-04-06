@@ -7,6 +7,9 @@ import (
   "os"
   "log"
   "time"
+  "io/ioutil"
+  "gopkg.in/yaml.v2"
+  "strings"
 )
 
 const (
@@ -20,18 +23,17 @@ const (
   colorReset string = "\033[0m"
 )
 
+type Challenges struct {
+    Lines []string `challenges`
+}
 
 func main() {
 
-  // some challenges, just for now to test
-  challenges := []string{
-    "echo \"foo bar\"\n",
-    "grep bar apache.log\n",
-    "sed -i 's/apache/nginx/g'\n",
-  }
+  var c Challenges
+  c.readFile("challenges.yml")
 
-  for i := range challenges {
-    succeeded, errRate, elapsed := challengeTypist(challenges[i])
+  for _, i := range c.Lines {
+    succeeded, errRate, elapsed := challengeTypist(i)
 
     if succeeded {
       fmt.Printf("Success took %.2fs, errors rate: %.2f%%\n", elapsed, errRate)
@@ -42,10 +44,27 @@ func main() {
 
 }
 
+// Read formatted yaml file
+func (c *Challenges) readFile(path string) *Challenges {
+
+    yamlFile, err := ioutil.ReadFile(path)
+    if err != nil {
+        log.Printf("yamlFile.Get err #%v ", err)
+    }
+
+    err = yaml.Unmarshal(yamlFile, c)
+    if err != nil {
+        log.Fatalf("Unmarshal: %v", err)
+    }
+
+    return c
+}
+
 // Prompt user the challenge and return if succeeded and what percentage
 func challengeTypist(challenge string) (bool, float64, float64) {
-// print the challenge
-  fmt.Printf("\n%s%s%s%s", colorPurple, challengeLimiter, colorReset, challenge)
+
+  // print the challenge
+  fmt.Printf("\n%s%s%s%s\n", colorPurple, challengeLimiter, colorReset, challenge)
 
   // build prompt and parse input
   fmt.Print(colorCyan, challengeLimiter, colorReset)
@@ -80,7 +99,7 @@ func compare(challenge string, input string) (bool, float64) {
   fmt.Print(colorGreen, resultLimiter, colorReset)
 
   // loop over input in length of original challenge
-  for pos, _ := range input[:len(challenge)-1] {
+  for pos, _ := range input[:len(challenge)] {
     if input[pos] == challenge[pos] {
       fmt.Printf("%s", string(challenge[pos]))
     } else {
@@ -88,6 +107,13 @@ func compare(challenge string, input string) (bool, float64) {
       fmt.Printf("%sx%s", colorRed, colorReset)
     }
   }
+
+  if len(input) > len(challenge) {
+    lendiff := float64(len(input)-1-len(challenge))
+    errCount += lendiff
+    fmt.Printf("%s%s%s", colorRed, strings.Repeat("x", int(lendiff)) ,colorReset)
+  }
+
   fmt.Print("\n")
 
   // build results
