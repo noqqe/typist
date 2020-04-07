@@ -1,5 +1,5 @@
 // Package main provides a typing test
-package main
+package typist
 
 import (
   "fmt"
