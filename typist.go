@@ -1,15 +1,15 @@
 // Package main provides a typing test
-package typist
+package main
 
 import (
   "fmt"
-  "bufio"
-  "os"
+  // "bufio"
+  // "os"
   "log"
   "time"
   "io/ioutil"
   "gopkg.in/yaml.v2"
-  "strings"
+  "github.com/eiannone/keyboard"
 )
 
 const (
@@ -35,20 +35,27 @@ func main() {
 
   c.readFile("challenges.yml")
 
+  // Initialization of Keyboard
+  err := keyboard.Open()
+	if err != nil {
+		panic(err)
+	}
+	defer keyboard.Close()
 
+  // Loop over different challenges
   for _, i := range c.Lines {
     succeeded, errRate, elapsed := challengeTypist(i)
 
     average += errRate
 
-    if succeeded {
-      fmt.Printf("Success took %.2fs, errors rate: %.2f%%\n", elapsed, errRate)
+    if succeeded == true {
+      fmt.Printf("SUCESS! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, errLimit, elapsed)
     } else {
-      fmt.Printf("Eh...nope took you %.2fs to fail miserbly, error rate too high: %.2f%%\n", elapsed, errRate)
+      fmt.Printf("FAILURE! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, errLimit, elapsed)
     }
   }
 
-  fmt.Printf("\\o/ Average error rate: %.2f%%\n", average/float64(len(c.Lines)))
+  fmt.Printf("\n\\o/ Average error rate: %.2f%%\n", average/float64(len(c.Lines)))
 }
 
 // Read formatted yaml file
@@ -67,67 +74,54 @@ func (c *Challenges) readFile(path string) *Challenges {
     return c
 }
 
+// Read input from Keystrokes and compare with expected input
+func readInput(expect string) (bool, string) {
+
+  char, _, err := keyboard.GetKey()
+  if (err != nil) {
+      log.Fatalf("GetKey: %v", err)
+  }
+
+  // fmt.Print("\n", char, key, "\n")
+  // fmt.Println(string(char), expect)
+  if string(char) == expect {
+    return false, string(char)
+  } else {
+    return true, fmt.Sprintf("%sx%s", colorRed, colorReset)
+  }
+
+}
+
 // Prompt user the challenge and return if succeeded and what percentage
 func challengeTypist(challenge string) (bool, float64, float64) {
+
+  var elapsed float64
+  var errCount float64
+  var errRate float64
 
   // print the challenge
   fmt.Printf("\n%s%s%s%s\n", colorPurple, challengeLimiter, colorReset, challenge)
 
   // build prompt and parse input
   fmt.Print(colorCyan, challengeLimiter, colorReset)
-  reader := bufio.NewReader(os.Stdin)
 
   start := time.Now()
-  input, err := reader.ReadString('\n')
-  if err != nil {
-    log.Fatal(err)
-  }
-  elapsed := float64(time.Since(start))/float64(time.Second)
-
-  succeded, errRate := compare(challenge, input)
-
-  return succeded, errRate, elapsed
-}
-
-// Compares input with challenge and calculates error rate in percent
-func compare(challenge string, input string) (bool, float64) {
-
-  var max float64 = float64(len(challenge))
-  var errCount float64 = 0
-  var challengeSucceded bool = false
-
-  // pad input to match challenge if too short
-  for i := len(input); len(input) < len(challenge); i++ {
-    input += "\x00"
-  }
-
-  // run comparsion char by char
-  fmt.Print(colorGreen, resultLimiter, colorReset)
-
-  // loop over input in length of original challenge
-  for pos, _ := range input[:len(challenge)] {
-    if input[pos] == challenge[pos] {
-      fmt.Printf("%s", string(challenge[pos]))
-    } else {
+  for _, char := range challenge {
+    failure, c := readInput(string(char))
+    fmt.Print(c)
+    if failure {
       errCount += 1
-      fmt.Printf("%sx%s", colorRed, colorReset)
     }
   }
+  fmt.Println()
 
-  if len(input) > len(challenge) {
-    lendiff := float64(len(input)-1-len(challenge))
-    errCount += lendiff
-    fmt.Printf("%s%s%s", colorRed, strings.Repeat("x", int(lendiff)) ,colorReset)
-  }
-
-  fmt.Print("\n")
-
-  // build results
-  var errRate float64 = errCount/max*100
+  elapsed = float64(time.Since(start))/float64(time.Second)
+  errRate = errCount/float64(len(challenge))*100
 
   if errRate < errLimit {
-    challengeSucceded = true
+    return true, errRate, elapsed
   }
 
-  return challengeSucceded, errRate
+  return false, errRate, elapsed
 }
+
