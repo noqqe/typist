@@ -3,8 +3,6 @@ package main
 
 import (
   "fmt"
-  // "bufio"
-  // "os"
   "log"
   "time"
   "io/ioutil"
@@ -77,12 +75,20 @@ func (c *Challenges) readFile(path string) *Challenges {
 // Read input from Keystrokes and compare with expected input
 func readInput(expect string) (bool, string) {
 
-  char, _, err := keyboard.GetKey()
+  char, key, err := keyboard.GetKey()
   if (err != nil) {
       log.Fatalf("GetKey: %v", err)
   }
 
-  // fmt.Print("\n", char, key, "\n")
+  // check if non alpha numeric input (like space)
+  // fmt.Print("\n", int(key), int([]rune(expect)[0]), "\n")
+
+  if char == 0 {
+    if int(key) == int([]rune(expect)[0]) {
+      return false, string(key)
+    }
+  }
+
   // fmt.Println(string(char), expect)
   if string(char) == expect {
     return false, string(char)
