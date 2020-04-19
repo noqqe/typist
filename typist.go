@@ -25,6 +25,13 @@ type Challenges struct {
     Lines []string `challenges`
 }
 
+type typeResponse struct {
+  failure bool
+  quit bool
+  char string
+}
+
+
 // Main Loop
 func main() {
 
@@ -73,7 +80,9 @@ func (c *Challenges) readFile(path string) *Challenges {
 }
 
 // Read input from Keystrokes and compare with expected input
-func readInput(expect string) (bool, string) {
+func readInput(expect string) typeResponse {
+
+  var resp typeResponse
 
   char, key, err := keyboard.GetKey()
   if (err != nil) {
@@ -82,18 +91,36 @@ func readInput(expect string) (bool, string) {
 
   // check if non alpha numeric input (like space)
   // fmt.Print("\n", int(key), int([]rune(expect)[0]), "\n")
-
   if char == 0 {
+
+    // check user wants to quit
+    if int(key) == 3 {
+      resp.failure = false
+      resp.quit = true
+      resp.char = "abort...\n"
+      return resp
+    }
+
+    // compare if real key like space
     if int(key) == int([]rune(expect)[0]) {
-      return false, string(key)
+      resp.failure = false
+      resp.quit = false
+      resp.char = string(key)
+      return resp
     }
   }
 
   // fmt.Println(string(char), expect)
   if string(char) == expect {
-    return false, string(char)
+      resp.failure = false
+      resp.quit = false
+      resp.char = string(char)
+      return resp
   } else {
-    return true, fmt.Sprintf("%sx%s", colorRed, colorReset)
+      resp.failure = true
+      resp.quit = false
+      resp.char = fmt.Sprintf("%sx%s", colorRed, colorReset)
+      return resp
   }
 
 }
@@ -113,9 +140,15 @@ func challengeTypist(challenge string) (bool, float64, float64) {
 
   start := time.Now()
   for _, char := range challenge {
-    failure, c := readInput(string(char))
-    fmt.Print(c)
-    if failure {
+    r := readInput(string(char))
+    fmt.Print(r.char)
+
+    // quit challenge when exit
+    if r.quit {
+      return false, 100, float64(time.Since(start))/float64(time.Second)
+    }
+
+    if r.failure {
       errCount += 1
     }
   }
