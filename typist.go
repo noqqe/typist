@@ -83,6 +83,9 @@ func (c *Challenges) readFile(path string) *Challenges {
 func readInput(expect string) typeResponse {
 
   var resp typeResponse
+  resp.failure = false
+  resp.quit = false
+
 
   char, key, err := keyboard.GetKey()
   if (err != nil) {
@@ -95,7 +98,6 @@ func readInput(expect string) typeResponse {
 
     // check user wants to quit
     if int(key) == 3 {
-      resp.failure = false
       resp.quit = true
       resp.char = "abort...\n"
       return resp
@@ -104,7 +106,6 @@ func readInput(expect string) typeResponse {
     // compare if real key like space
     if int(key) == int([]rune(expect)[0]) {
       resp.failure = false
-      resp.quit = false
       resp.char = string(key)
       return resp
     }
@@ -112,13 +113,10 @@ func readInput(expect string) typeResponse {
 
   // fmt.Println(string(char), expect)
   if string(char) == expect {
-      resp.failure = false
-      resp.quit = false
       resp.char = string(char)
       return resp
   } else {
       resp.failure = true
-      resp.quit = false
       resp.char = fmt.Sprintf("%sx%s", colorRed, colorReset)
       return resp
   }
