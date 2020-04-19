@@ -11,6 +11,7 @@ import (
 )
 
 const (
+  version string = "0.0.2"
   errLimit float64 = 5 // Error Rate Limit
   challengeLimiter string = ">> "
   resultLimiter string = "== "
@@ -22,6 +23,7 @@ const (
 )
 
 type Challenges struct {
+    Description string `description`
     Lines []string `challenges`
 }
 
@@ -46,6 +48,9 @@ func main() {
 		panic(err)
 	}
 	defer keyboard.Close()
+
+  fmt.Printf("%sWelcome to typist v%s%s\n", colorGreen, version, colorReset)
+  fmt.Printf("Your Challenge: %s\n", c.Description)
 
   // Loop over different challenges
   for _, i := range c.Lines {
