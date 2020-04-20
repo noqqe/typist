@@ -3,6 +3,7 @@ package main
 
 import (
   "fmt"
+  "flag"
   "log"
   "time"
   "io/ioutil"
@@ -39,8 +40,15 @@ func main() {
 
   var c Challenges
   var average float64
+  var rate float64
+  var challenge_file string
 
-  c.readFile("challenges.yml")
+  // flags declaration using flag package
+  flag.Float64Var(&rate, "r", 5, "Allowed error rate. Default: 5")
+  flag.StringVar(&challenge_file, "f", "challenges/intro-1.yml", "Specify challenge file")
+  flag.Parse()
+
+  c.readFile(challenge_file)
 
   // Initialization of Keyboard
   err := keyboard.Open()
