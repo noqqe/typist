@@ -13,9 +13,7 @@ import (
 
 const (
   version string = "0.0.2"
-  errLimit float64 = 5 // Error Rate Limit
   challengeLimiter string = ">> "
-  resultLimiter string = "== "
   colorRed string = "\033[31m"
   colorPurple string = "\033[35m"
   colorCyan string = "\033[36m"
@@ -42,6 +40,7 @@ func main() {
   var average float64
   var rate float64
   var challenge_file string
+  var errRate float64
 
   // flags declaration using flag package
   flag.Float64Var(&rate, "r", 5, "Allowed error rate. Default: 5")
@@ -62,14 +61,16 @@ func main() {
 
   // Loop over different challenges
   for _, i := range c.Lines {
-    succeeded, errRate, elapsed := challengeTypist(i)
+    errCount, elapsed := challengeTypist(i)
 
+    // statistics
+    errRate = float64(errCount)/float64(len(i))*100
     average += errRate
 
-    if succeeded == true {
-      fmt.Printf("SUCESS! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, errLimit, elapsed)
+    if errRate < rate {
+      fmt.Printf("SUCESS! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, rate, elapsed)
     } else {
-      fmt.Printf("FAILURE! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, errLimit, elapsed)
+      fmt.Printf("FAILURE! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, rate, elapsed)
     }
   }
 
@@ -137,11 +138,10 @@ func readInput(expect string) typeResponse {
 }
 
 // Prompt user the challenge and return if succeeded and what percentage
-func challengeTypist(challenge string) (bool, float64, float64) {
+func challengeTypist(challenge string) (int, float64) {
 
   var elapsed float64
-  var errCount float64
-  var errRate float64
+  var errCount int
 
   // print the challenge
   fmt.Printf("\n%s%s%s%s\n", colorPurple, challengeLimiter, colorReset, challenge)
@@ -156,7 +156,7 @@ func challengeTypist(challenge string) (bool, float64, float64) {
 
     // quit challenge when exit
     if r.quit {
-      return false, 100, float64(time.Since(start))/float64(time.Second)
+      return len(challenge), float64(time.Since(start))/float64(time.Second)
     }
 
     if r.failure {
@@ -166,12 +166,7 @@ func challengeTypist(challenge string) (bool, float64, float64) {
   fmt.Println()
 
   elapsed = float64(time.Since(start))/float64(time.Second)
-  errRate = errCount/float64(len(challenge))*100
 
-  if errRate < errLimit {
-    return true, errRate, elapsed
-  }
-
-  return false, errRate, elapsed
+  return errCount, elapsed
 }
 
