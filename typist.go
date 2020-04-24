@@ -4,7 +4,7 @@ package main
 import (
   "fmt"
   "flag"
-  "log"
+  "os"
   "time"
   "io/ioutil"
   "gopkg.in/yaml.v2"
@@ -12,13 +12,15 @@ import (
 )
 
 const (
-  version string = "0.0.2"
   challengeLimiter string = ">> "
-  colorRed string = "\033[31m"
-  colorPurple string = "\033[35m"
   colorCyan string = "\033[36m"
   colorGreen string = "\033[32m"
+  colorPurple string = "\033[35m"
+  colorRed string = "\033[31m"
   colorReset string = "\033[0m"
+  failureChar = 10008 // cross heavy utf8
+  successChar = 10004 // checkmark utf8
+  version string = "0.0.2"
 )
 
 type Challenges struct {
@@ -56,25 +58,35 @@ func main() {
 	}
 	defer keyboard.Close()
 
-  fmt.Printf("%sWelcome to typist v%s%s\n", colorGreen, version, colorReset)
+  logMessage(fmt.Sprintf("Welcome to typist v%s", version), "green")
   fmt.Printf("Your Challenge: %s\n", c.Description)
 
   // Loop over different challenges
   for _, i := range c.Lines {
-    errCount, elapsed := challengeTypist(i)
+    errCount, elapsed := showChallenge(i)
 
     // statistics
     errRate = float64(errCount)/float64(len(i))*100
     average += errRate
 
     if errRate < rate {
-      fmt.Printf("SUCESS! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, rate, elapsed)
+      logMessage(fmt.Sprintf("%s %.2f%% (<%.2f%%) error rate in %.2fs\n", string(successChar), errRate, rate, elapsed), "green")
     } else {
-      fmt.Printf("FAILURE! %.2f%% (<%.2f%%) error rate in %.2fs\n", errRate, rate, elapsed)
+      logMessage(fmt.Sprintf("%s %.2f%% (<%.2f%%) error rate in %.2fs\n", string(failureChar), errRate, rate, elapsed), "red")
     }
   }
 
-  fmt.Printf("\n\\o/ Average error rate: %.2f%%\n", average/float64(len(c.Lines)))
+  fmt.Printf("\\o/ Average error rate: %.2f%%\n", average/float64(len(c.Lines)))
+}
+
+func logMessage(message string, color string) {
+  if (color == "red") {
+    fmt.Printf("%s%s%s\n", colorRed, message, colorReset)
+  } else if (color == "green") {
+    fmt.Printf("%s%s%s\n", colorGreen, message, colorReset)
+  } else {
+    fmt.Printf("%s\n", message)
+  }
 }
 
 // Read formatted yaml file
@@ -82,12 +94,14 @@ func (c *Challenges) readFile(path string) *Challenges {
 
     yamlFile, err := ioutil.ReadFile(path)
     if err != nil {
-        log.Printf("yamlFile.Get err #%v ", err)
+        logMessage("Could not open file", "red")
+        os.Exit(1)
     }
 
     err = yaml.Unmarshal(yamlFile, c)
     if err != nil {
-        log.Fatalf("Unmarshal: %v", err)
+        logMessage(fmt.Sprintf("Unmarshal %v", err), "red")
+        os.Exit(1)
     }
 
     return c
@@ -103,7 +117,8 @@ func readInput(expect string) typeResponse {
 
   char, key, err := keyboard.GetKey()
   if (err != nil) {
-      log.Fatalf("GetKey: %v", err)
+      logMessage(fmt.Sprintf("GetKey: %v ", err), "red")
+      os.Exit(1)
   }
 
   // check if non alpha numeric input (like space)
@@ -138,7 +153,7 @@ func readInput(expect string) typeResponse {
 }
 
 // Prompt user the challenge and return if succeeded and what percentage
-func challengeTypist(challenge string) (int, float64) {
+func showChallenge(challenge string) (int, float64) {
 
   var elapsed float64
   var errCount int
