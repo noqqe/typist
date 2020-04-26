@@ -1,4 +1,4 @@
-description: "Basic Bash Shell Training"
+description: "Basic Fish Shell Training"
 challenges:
   - 'echo foo'
   - 'echo bar > baz.txt'
