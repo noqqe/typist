@@ -1,2 +1,4 @@
-./typist
+typist
 dist/
+.task/
+.DS_Store

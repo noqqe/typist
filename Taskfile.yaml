@@ -1,0 +1,25 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - go build -ldflags "-X main.Version=`git describe --tags`"  -v typist.go
+    sources:
+      - "typist.go"
+    generates:
+      - "./typist"
+
+  release:
+    interactive: true
+    cmds:
+      - git tag | tail -5
+      - read -p "Version 1.1.1 " version ; git tag $version
+      - git push --tags
+      - goreleaser release --clean
+
+  default:
+    cmds:
+      - task: build
+
